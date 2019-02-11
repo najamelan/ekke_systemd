@@ -37,7 +37,9 @@ fn main()
 		// 	println!( "PeerB: Argument passed on cli: {}", argument );
 		// }
 
-		let sock_addr = args().nth( 2 ).expect( "No arguments passed in." );
+		let arg = args().nth( 2 ).expect( "No arguments passed in." );
+
+		let sock_addr = "\x00".to_string() + &arg;
 
 		println!( "PeerB: socket addres set to: {:?}", sock_addr );
 
