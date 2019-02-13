@@ -5,19 +5,34 @@
 	authors = [ "Naja Melan <najamelan@autistici.org>" ]
 	edition = "2018"
 
+
+[[bin]]
+
+	path = "src/main.rs"
+	name = "ekke_systemd"
+
+[lib]
+
+	name = "libsystemd"
+	path = "src/libsystemd/lib.rs"
+
+
 [dependencies]
 
 	ekke_core = { path = "../../ekke_core" }
 	ekke_io   = { path = "../../ekke_io"   }
 
-
-	actix = "0.7.9"
+	actix             = "0.7.9"
+	failure           = "~0.1.5"
+	typename          = "0.1.0"
 
 	serde             = "~1.0.87"
+	serde_derive      = "~1.0.87"
 	serde_cbor        = "~0.9.0"
 
 	slog              = { version = "~2.4.1", features = ["max_level_trace", "release_max_level_warn"] }
-
+	slog-async        = "2.3.0"
+	slog-term         = "2.4.0"
 
 	tokio             = { version = "0.1.15", features = ["async-await-preview"] }
 	tokio-async-await = "0.1.5"

@@ -1,114 +1,43 @@
-#![ feature( await_macro, async_await, futures_api ) ]
+#![ forbid(unsafe_code) ]
+#![ feature( await_macro, async_await, futures_api, nll ) ]
+#![ warn(unused_extern_crates) ]
 
-use serde_cbor::from_slice as des;
+use libsystemd :: { Systemd                      };
+use ekke_io    :: { ThreadLocalDrain             };
+use actix      :: { prelude::*                   };
 
-use libekke::services::RegisterApplication;
-use tokio::codec::Decoder;
+use slog       :: { Logger, Drain, o             };
+use slog_term  :: { TermDecorator, CompactFormat };
+use slog_async :: { Async                        };
 
-use tokio::codec::Framed;
-
-use tokio::prelude::stream::{ SplitStream};
-
-use tokio::prelude::*;
+// use log_panics ;
 
 
-use tokio_serde_cbor::Codec;
-use std::process::exit;
-use futures_util::{future::FutureExt, try_future::TryFutureExt};
-use std::env::args;
-
-use tokio_uds::UnixStream;
-use tokio_async_await::await;
-
-use ekke_io::*;
-
-use std::path::PathBuf;
-
-use actix::prelude::*;
 
 fn main()
 {
-	System::run( move ||	{ Arbiter::spawn( async move
-	{
-		println!( "PeerB: Starting" );
+	let sys = System::new( "peers" );
 
-		// for argument in args()
-		// {
-		// 	println!( "PeerB: Argument passed on cli: {}", argument );
-		// }
+	let log = root_logger().new( o!( "thread_name" => "main", "Actor" => "Systemd" ) );
 
-		let arg = args().nth( 2 ).expect( "No arguments passed in." );
+	// log_panics::init();
 
-		let sock_addr = "\x00".to_string() + &arg;
+	let _ekke = Systemd{ log }.start();
 
-		println!( "PeerB: socket addres set to: {:?}", sock_addr );
-
-		let socket = match await!( UnixStream::connect( PathBuf::from( &sock_addr ) ) )
-		{
-			Ok ( cx  ) => { cx },
-			Err( err ) => { eprintln!( "{}", err ); exit( 1 ); }
-		};
-
-		let codec: Codec<IpcMessage, IpcMessage>  = Codec::new().packed( true );
-
-		let (mut sink, stream) = codec.framed( socket ).split();
-
-
-		tokio::spawn_async( async move
-		{
-			await!( listen( stream ) );
-		} );
-
-
-		let write   = IpcMessage::new( "RegistertApplication".into(), RegisterApplication{ app_name: "PeerB".to_string() } );
-
-
-		match await!( sink.send_async( write ) )
-		{
-			Ok (_) => { println! ( "PeerB: successfully wrote to stream"       ); },
-			Err(e) => { eprintln!( "PeerB: failed to write to stream: {:?}", e ); }
-		}
-
-
-		// System::current().stop();
-		println!( "PeerB: Shutting down" );
-
-		Ok(())
-
-	}.boxed().compat())});
+	sys.run();
 }
 
 
-/// Will listen to a connection and send all incoming messages to the dispatch.
-///
-#[ inline ]
-//
-async fn listen( mut stream: SplitStream<Framed<UnixStream, Codec<IpcMessage, IpcMessage>>> )
+
+fn root_logger() -> Logger
 {
-	loop
-	{
-		let option: Option< Result< IpcMessage, _ > > = await!( stream.next() );
+	let decorator = TermDecorator ::new().stdout()  .build()        ;
+	let compact   = CompactFormat ::new( decorator ).build().fuse() ;
+	let drain     = Async         ::new( compact   ).build().fuse() ;
 
-		let frame = match option
-		{
-			Some( result ) =>
-			{
-				match result
-				{
-					Ok ( frame ) => frame,
-					Err( error ) =>
-					{
-						eprintln!( "Error extracting IpcMessage from stream" );
-						eprintln!( "{:#?}", error );
-						continue;
-					}
-				}
-			},
-
-			None => return     // Disconnected
-		};
-
-		let de: String = des( &frame.payload ).expect( "Failed to deserialize into String" );
-		println!( "PeerB received: {}: {}", frame.service, de );
-	}
+	Logger::root( ThreadLocalDrain{ drain }.fuse(), o!( "version" => "0.1" ) )
 }
+
+
+
+
