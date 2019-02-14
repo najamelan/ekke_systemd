@@ -14,18 +14,21 @@ pub use systemd::
 
 pub mod services
 {
-	pub use crate::systemd::SendIndex;
+	pub use crate::systemd::SendHtmlIndex;
 }
 
 
-use crate::services::*;
-use ekke_io::{ IpcConnTrack, Dispatcher };
 
-pub(crate) fn service_map( msg: IpcConnTrack, d: &Dispatcher )
+use crate::services::*;
+use ekke_io::{ IpcMessage, Rpc };
+use actix::Recipient;
+
+
+pub(crate) fn service_map( rpc: &Rpc, msg: IpcMessage, ipc_peer: Recipient< IpcMessage > )
 {
-    match msg.ipc_msg.service.as_ref()
+    match msg.service.as_ref()
     {
-        "SendIndex" => d.deserialize::<SendIndex>( msg ),
+        "SendHtmlIndex" => rpc.deserialize::<SendHtmlIndex>( msg, ipc_peer ),
         _ =>(),
     }
 }

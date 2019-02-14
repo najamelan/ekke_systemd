@@ -4,7 +4,7 @@ use futures_util      :: { future::FutureExt, try_future::TryFutureExt };
 use slog              :: { Logger, info, o                            };
 use tokio_async_await :: { await                          };
 use tokio_uds         :: { UnixStream                           };
-use ekke_io           :: { IpcPeer, IpcMessage, Dispatcher, ResultExtSlog, Service };
+use ekke_io           :: { IpcPeer, IpcMessage, Rpc, ResultExtSlog, Service, ConnID, SendRequest, MessageType };
 use std::env::args;
 use std::path::PathBuf;
 use typename          :: { TypeName                                          };
@@ -37,9 +37,9 @@ impl Actor for Systemd
 		let _our_address = ctx.address().clone();
 		let log = self.log.clone();
 
-		let dispatcher = Dispatcher::new( log.new( o!( "Actor" => "Dispatcher" ) ), crate::service_map ).start();
+		let rpc = Rpc::new( log.new( o!( "Actor" => "Rpc" ) ), crate::service_map ).start();
 
-		self.register_service::<SendIndex>( &dispatcher, ctx );
+		self.register_service::<SendHtmlIndex>( &rpc, ctx );
 
 		let program = async move
 		{
@@ -57,19 +57,26 @@ impl Actor for Systemd
 			let peer_log = log.new( o!( "Actor" => "IpcPeer" ) );
 
 
-			let ekke_server = IpcPeer::create( |ctx: &mut Context<IpcPeer>|
+			let _ekke_server = IpcPeer::create( |ctx: &mut Context<IpcPeer<UnixStream>>|
 			{
-				IpcPeer::new( connection, dispatcher.recipient(), ctx.address(), peer_log )
+				IpcPeer::new( connection, rpc.recipient(), ctx.address(), peer_log )
 			});
 
 
-			await!( ekke_server.send
+			let conn_id = ConnID::new();
+
+			await!( rpc.send
 			(
-				IpcMessage::new
-				(
-					  "RegisterApplication".to_string()
-					, RegisterApplication { app_name: "Systemd".to_string() }
-				)
+				SendRequest
+				{
+					IpcMessage::new
+					(
+						  "RegisterApplication".to_string()
+						, RegisterApplication { conn_id, app_name: "Systemd".to_string() }
+						, MessageType::SendRequest
+						, conn_id
+					)
+				}
 
 			)).unwraps( &log );
 

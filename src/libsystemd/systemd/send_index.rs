@@ -1,24 +1,48 @@
-use typename          :: { TypeName               };
-use actix             :: { prelude::*             };
-use serde_derive      :: { Serialize, Deserialize };
-
+use typename          :: { TypeName                        };
+use actix             :: { prelude::*                      };
+use serde_derive      :: { Serialize, Deserialize          };
+use ekke_io           :: { IpcMessage, ConnID, MessageType };
+use slog              :: { info                            };
 
 use crate::Systemd;
 
+#[ derive( Debug, Clone, Serialize, Deserialize, Message, TypeName ) ] #[rtype(result="IpcMessage")]
+//
+pub struct SendHtmlIndex
+{
+	pub app_name: String,
+	pub conn_id : ConnID,
+}
+
 #[ derive( Debug, Clone, Serialize, Deserialize, Message, TypeName ) ]
 //
-pub struct SendIndex {}
-
-
-
-impl Handler<SendIndex> for Systemd
+pub struct SendHtmlIndexResponse
 {
-	type Result = ();
+	pub response: String
+}
 
-	fn handle( &mut self, _msg: SendIndex, _ctx: &mut Context<Self> ) -> Self::Result
+
+
+impl Handler<SendHtmlIndex> for Systemd
+{
+	type Result = IpcMessage;
+
+	fn handle( &mut self, msg: SendHtmlIndex, _ctx: &mut Context<Self> ) -> Self::Result
 	{
-		println!( "Systemd: Received request for index" );
-	}
+		info!( self.log, "Systemd: Received app registration for app: {}", msg.app_name );
 
+		let service = "SendHtmlIndexResponse".to_string();
+		let payload = SendHtmlIndexResponse{ response: "<html><body>Systemd</body></html>".to_string() };
+		let ms_type = MessageType::Response;
+		let conn_id = msg.conn_id;
+
+		IpcMessage::new
+		(
+			  service
+			, payload
+			, ms_type
+			, conn_id
+		)
+	}
 }
 
