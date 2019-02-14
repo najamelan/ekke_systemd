@@ -8,7 +8,7 @@ use ekke_io           :: { IpcPeer, IpcMessage, Rpc, ResultExtSlog, Service, Con
 use std::env::args;
 use std::path::PathBuf;
 use typename          :: { TypeName                                          };
-use libekke::services::RegisterApplication;
+use libekke::services::{ RegisterApplication, RegisterApplicationResponse };
 
 //use crate::{ EkkeError };
 
@@ -38,6 +38,7 @@ impl Actor for Systemd
 		let log = self.log.clone();
 
 		let rpc = Rpc::new( log.new( o!( "Actor" => "Rpc" ) ), crate::service_map ).start();
+		let rpc2 = rpc.clone();
 
 		self.register_service::<SendHtmlIndex>( &rpc, ctx );
 
@@ -57,19 +58,22 @@ impl Actor for Systemd
 			let peer_log = log.new( o!( "Actor" => "IpcPeer" ) );
 
 
-			let _ekke_server = IpcPeer::create( |ctx: &mut Context<IpcPeer<UnixStream>>|
+
+			let ekke_server = IpcPeer::create( |ctx: &mut Context<IpcPeer<UnixStream>>|
 			{
-				IpcPeer::new( connection, rpc.recipient(), ctx.address(), peer_log )
+				IpcPeer::new( connection, rpc, ctx.address(), peer_log )
 			});
 
 
 			let conn_id = ConnID::new();
 
-			await!( rpc.send
+			let response = await!( rpc2.send
 			(
 				SendRequest
 				{
-					IpcMessage::new
+					ipc_peer: ekke_server.recipient(),
+
+					ipc_msg: IpcMessage::new
 					(
 						  "RegisterApplication".to_string()
 						, RegisterApplication { conn_id, app_name: "Systemd".to_string() }
@@ -80,11 +84,13 @@ impl Actor for Systemd
 
 			)).unwraps( &log );
 
+			let resp: RegisterApplicationResponse = Rpc::deserialize2( response.ipc_msg.payload ).unwrap();
+
+			info!( log, "Systemd: Received response for RegisterApplication: {}", resp.response );
+
 			Ok(())
 		};
 
 		Arbiter::spawn( program.boxed().compat() );
 	}
 }
-
-
