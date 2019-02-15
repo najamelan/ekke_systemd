@@ -1,20 +1,29 @@
 use actix             :: { prelude::*                                        };
 use failure           :: { ResultExt                                         };
-use futures_util      :: { future::FutureExt, try_future::TryFutureExt };
-use slog              :: { Logger, info, o                            };
-use tokio_async_await :: { await                          };
-use tokio_uds         :: { UnixStream                           };
-use ekke_io           :: { IpcPeer, IpcMessage, Rpc, ResultExtSlog, Service, ConnID, SendRequest, MessageType };
-use std::env::args;
-use std::path::PathBuf;
+use futures_util      :: { future::FutureExt, try_future::TryFutureExt       };
+use slog              :: { Logger, info, o                                   };
+use tokio_async_await :: { await                                             };
+use tokio_uds         :: { UnixStream                                        };
+use std               :: { env::args, path::PathBuf                          };
 use typename          :: { TypeName                                          };
-use libekke::services::{ RegisterApplication, RegisterApplicationResponse };
+use libekke::services :: { RegisterApplication, RegisterApplicationResponse  };
+
+use ekke_io::
+{
+	  IpcPeer
+	, IpcMessage
+	, Rpc
+	, ResultExtSlog
+	, RegisterServiceMethod
+	, ConnID
+	, SendRequest
+	, MessageType
+};
 
 //use crate::{ EkkeError };
 
 
-
-mod send_index;
+mod     send_index   ;
 pub use send_index::*;
 
 
