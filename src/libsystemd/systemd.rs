@@ -1,17 +1,13 @@
 use actix             :: { prelude::*                                        };
-use failure           :: { ResultExt                                         };
 use futures_util      :: { future::FutureExt, try_future::TryFutureExt       };
 use slog              :: { Logger, info, o                                   };
 use tokio_async_await :: { await                                             };
-use tokio_uds         :: { UnixStream                                        };
-use std               :: { env::args, path::PathBuf                          };
 use typename          :: { TypeName                                          };
 use libekke::services :: { RegisterApplication, RegisterApplicationResponse  };
 
 use ekke_io::
 {
-	  IpcPeer
-	, IpcMessage
+	  IpcMessage
 	, Rpc
 	, ResultExtSlog
 	, RegisterServiceMethod
@@ -20,7 +16,7 @@ use ekke_io::
 	, MessageType
 };
 
-//use crate::{ EkkeError };
+use libekke::Ekke;
 
 
 mod     send_index   ;
@@ -43,10 +39,10 @@ impl Actor for Systemd
 	//
 	fn started( &mut self, ctx: &mut Self::Context )
 	{
-		let _our_address = ctx.address().clone();
-		let log = self.log.clone();
+		// let _our_address = ctx.address().clone();
+		let log  = self.log.clone();
 
-		let rpc = Rpc::new( log.new( o!( "Actor" => "Rpc" ) ), crate::service_map ).start();
+		let rpc  = Rpc::new( log.new( o!( "Actor" => "Rpc" ) ), crate::service_map ).start();
 		let rpc2 = rpc.clone();
 
 		self.register_service::<SendHtmlIndex>( &rpc, ctx );
@@ -55,25 +51,13 @@ impl Actor for Systemd
 		{
 			info!( log, "Ekke Systemd Starting up" );
 
-			let arg        = args().nth( 2 ).expect( "No arguments passed in." );
-			let sock_addr  = "\x00".to_string() + &arg;
+			// Create an IpcPeer representing the Ekke Server
+			//
+			let ekke_server = await!( Ekke::server_peer( log.new( o!( "IpcPeer" => "EkkeServer" ) ), rpc ) );
 
 
-			let connection = await!( UnixStream::connect( PathBuf::from( &sock_addr ) ) )
-
-				.context( "Failed to connect to socket" ).unwraps( &log );
-
-
-			let peer_log = log.new( o!( "Actor" => "IpcPeer" ) );
-
-
-
-			let ekke_server = IpcPeer::create( |ctx: &mut Context<IpcPeer<UnixStream>>|
-			{
-				IpcPeer::new( connection, rpc, ctx.address(), peer_log )
-			});
-
-
+			// Register our application with the server
+			//
 			let conn_id = ConnID::new();
 
 			let response = await!( rpc2.send
