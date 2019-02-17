@@ -93,7 +93,7 @@ impl Actor for Systemd
 
 			)).unwraps( &log );
 
-			let resp: RegisterApplicationResponse = Rpc::deserialize2( response.ipc_msg.payload ).unwrap();
+			let resp: RegisterApplicationResponse = Rpc::deserialize( response.ipc_msg.payload ).unwraps( &log );
 
 			info!( log, "Systemd: Received response for RegisterApplication: {}", resp.response );
 

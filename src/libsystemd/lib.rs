@@ -28,7 +28,7 @@ pub(crate) fn service_map( rpc: &Rpc, msg: IpcMessage, ipc_peer: Recipient< IpcM
 {
     match msg.service.as_ref()
     {
-        "SendHtmlIndex" => rpc.deserialize::<SendHtmlIndex>( msg, ipc_peer ),
+        "SendHtmlIndex" => rpc.deser_into::<SendHtmlIndex>( msg, ipc_peer ),
         _ =>(),
     }
 }
