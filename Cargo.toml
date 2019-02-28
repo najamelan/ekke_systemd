@@ -42,6 +42,4 @@
 
 [dependencies.futures-util-preview]
 
-	default-features = false
-	features         = ["tokio-compat"]
-	version          = "0.3.0-alpha.12"
+	version          = "0.3.0-alpha.13"
