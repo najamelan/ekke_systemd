@@ -60,6 +60,14 @@ impl Actor for Systemd
 			//
 			let conn_id = ConnID::new();
 
+			let msg = RegisterApplication
+			{
+				conn_id                                       ,
+				app_name: "Systemd".to_string()                ,
+				route   : "/systemd".to_string()               ,
+				services: vec![ "HttpRequest".to_string() ] ,
+			};
+
 			let response = await!( rpc2.send
 			(
 				SendRequest
@@ -69,7 +77,7 @@ impl Actor for Systemd
 					ipc_msg: IpcMessage::new
 					(
 						  "RegisterApplication".to_string()
-						, RegisterApplication { conn_id, app_name: "Systemd".to_string() }
+						, msg
 						, MessageType::SendRequest
 						, conn_id
 					)
