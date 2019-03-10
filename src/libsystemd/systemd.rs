@@ -1,6 +1,7 @@
 use actix             :: { prelude::*                                        };
 use futures_util      :: { future::FutureExt, try_future::TryFutureExt       };
 use slog              :: { Logger, info, o                                   };
+use slog_unwraps      :: { ResultExt                                         };
 use tokio_async_await :: { await                                             };
 use typename          :: { TypeName                                          };
 use libekke::services :: { RegisterApplication, RegisterApplicationResponse  };
@@ -9,7 +10,6 @@ use ekke_io::
 {
 	  IpcMessage
 	, Rpc
-	, ResultExtSlog
 	, RegisterServiceMethod
 	, ConnID
 	, SendRequest
@@ -62,8 +62,8 @@ impl Actor for Systemd
 
 			let msg = RegisterApplication
 			{
-				conn_id                                       ,
-				app_name: "Systemd".to_string()                ,
+				conn_id                                ,
+				app_name: "systemd".into()             ,
 				route   : "/systemd".to_string()               ,
 				services: vec![ "HttpRequest".to_string() ] ,
 			};
