@@ -64,7 +64,7 @@ impl Actor for Systemd
 			{
 				conn_id                                ,
 				app_name: "systemd".into()             ,
-				route   : "/systemd".to_string()               ,
+				routes   : vec![ "/systemd".to_string()  ]             ,
 				services: vec![ "HttpRequest".to_string() ] ,
 			};
 
