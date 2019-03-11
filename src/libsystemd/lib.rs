@@ -18,17 +18,20 @@ pub mod services
 }
 
 
+use
+{
+	crate   :: { services::*      } ,
+	ekke_io :: { IpcMessage, Rpc  } ,
+	actix   :: { Recipient        } ,
+	slog    :: { Logger, error    } ,
+};
 
-use crate::services::*;
-use ekke_io::{ IpcMessage, Rpc };
-use actix::Recipient;
 
-
-pub(crate) fn service_map( rpc: &Rpc, msg: IpcMessage, ipc_peer: Recipient< IpcMessage > )
+pub(crate) fn service_map( rpc: &Rpc, log: Logger, msg: IpcMessage, ipc_peer: Recipient< IpcMessage > )
 {
     match msg.service.as_ref()
     {
         "SendHtmlIndex" => rpc.deser_into::<SendHtmlIndex>( msg, ipc_peer ),
-        _ =>(),
+        _               => error!( &log, "Systemd: Received request for unknown service: {}", &msg.service ),
     }
 }
